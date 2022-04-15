@@ -11,8 +11,8 @@ function moneyReward (t) {
         case 'headhunter': return 10;
         case 'scout': return 3;
         case 'shaman': return 2;
+        case 'ogre': return 5 + (t.maxHealth === 250 ? 2.5 : 0);
     }
-    if (t.type === 'ogre' && t.maxHealth === 250) return 7.5; else if (t.type === 'ogre') return 5;
     return 1;
 }
 function rewardPlayer (event) {
