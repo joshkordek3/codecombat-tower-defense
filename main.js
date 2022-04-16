@@ -18,7 +18,6 @@ function moneyReward (t) {
 function rewardPlayer (event) {
     let t = event.target;
     game.money += moneyReward(t);
-    game.enemiesAlive -= 1;
     enemies.splice(enemies.indexOf(t), 1);
     t.destroy();
 }
@@ -207,7 +206,6 @@ function move (thang, pos) {
     }
 }
 function pathMove (event) {
-    game.enemiesAlive += 1;
     game.enemiesLeftInWave -= 1;
     let ogre = event.target;
     enemies.push(ogre);
@@ -236,7 +234,7 @@ function buildRect (type, x1, x2, y1, y2) {
         }
     }
 }
-function charDetect1 (event) {
+function charDetect (event) {
     switch (event.keyChar) {
         case 'N':
             if (!game.isSpawningWave) game.wave++;
@@ -283,22 +281,20 @@ function charDetect1 (event) {
     }
 }
 function nextWave (event) {
-    if (event.message === 'NW') {
-        game.isSpawningWave = true;
-        let waveEnemies = [{thrower: [10, 500]}, {munchkin: [15, 500], thrower: [10, 500]}, {scout: [5, 500]}, {ogre: [5, 1000]}, {ogreF: [2, 500]}, {headhunter: [1, 0]}, {skeleton: [5, 500]}, {shaman: [25, 500], ogreF: [10, 500]}, {headhunter: [5, 500], skeleton: [2, 500]}, {ogreF: [20, 500], skeleton: [10, 500]}];
-        let waveEnemyArray = waveEnemies[game.wave - 1];
-        for (let enemyType in waveEnemyArray) game.enemiesLeftInWave += waveEnemyArray[enemyType][0];
-        for (let enemyType in waveEnemyArray) {
-            let enemyNum = waveEnemyArray[enemyType][0];
-            let delay = waveEnemyArray[enemyType][1];
-            for (let i = 0; i < enemyNum; i++) {
-                wait(delay);
-                if (enemyType === 'ogreF') game.spawnXY('ogre-f', 57.5, 60);
-                else game.spawnXY(enemyType, 57.5, 60);
-            }
+    game.isSpawningWave = true;
+    let waveEnemies = [{thrower: [10, 500]}, {munchkin: [15, 500], thrower: [10, 500]}, {scout: [5, 500]}, {ogre: [5, 1000]}, {ogreF: [2, 500]}, {headhunter: [1, 0]}, {skeleton: [5, 500]}, {shaman: [25, 500], ogreF: [10, 500]}, {headhunter: [5, 500], skeleton: [2, 500]}, {ogreF: [20, 500], skeleton: [10, 500]}];
+    let waveEnemyArray = waveEnemies[game.wave - 1];
+    for (let enemyType in waveEnemyArray) game.enemiesLeftInWave += waveEnemyArray[enemyType][0];
+    for (let enemyType in waveEnemyArray) {
+        let enemyNum = waveEnemyArray[enemyType][0];
+        let delay = waveEnemyArray[enemyType][1];
+        for (let i = 0; i < enemyNum; i++) {
+            wait(delay);
+            if (enemyType === 'ogreF') game.spawnXY('ogre-f', 57.5, 60);
+            else game.spawnXY(enemyType, 57.5, 60);
         }
-        game.isSpawningWave = false;
     }
+    game.isSpawningWave = false;
 }
 function manageGame (event) {
     while (true) {
@@ -306,6 +302,7 @@ function manageGame (event) {
         for (let tower of towers) if (game.towerPos && tower.distanceTo(game.towerPos) <= tower.scale * 2) thingy();
         if (game.timestamp1 && game.keyReqPressed1 && game.time - game.timestamp1 >= 0.5) game.keyReqPressed1 = false;
         if (game.timestamp2 && game.keyReqPressed2 && game.time - game.timestamp2 >= 0.5) game.keyReqPressed2 = false;
+        game.enemiesAlive = enemies.length;
         wait(1);
     }
 }
@@ -341,7 +338,7 @@ processor.scale = 0;
 const player = game.spawnPlayerXY('knight', 5, 5);
 player.destroy();
 game.survive = game.addManualGoal('Survive until wave 10.');
-game.on('keydown', charDetect1);
+game.on('keydown', charDetect);
 game.lives = 25;
 game.money = 100;
 game.wave = 0;
@@ -388,8 +385,8 @@ game.arch.scale = 0.01;
 game.sold.scale = 0.01;
 game.thro.scale = 0.01;
 while (true) {
-    if (game.wave - 1 >= game.previousWave) nextWave({message: 'NW'});
+    if (game.wave - 1 >= game.previousWave) nextWave();
     else if (game.wave >= 10 && game.enemiesAlive === 0 && game.enemiesLeftInWave === 0 && game.lives > 0) game.setGoalState(game.survive, true);
-    if (game.wave != game.previousWave) game.previousWave = game.wave;
+    if (game.wave !== game.previousWave) game.previousWave = game.wave;
     wait(10);
 }
