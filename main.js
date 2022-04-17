@@ -3,7 +3,7 @@ let enemies = [];
 let towers = [];
 function wait (millis) {
     let timestamp = game.time;
-    while (true) if (game.time - timestamp >= millis / 1e3) break;
+    while (true) if (game.time - timestamp >= millis / 1000) break;
 } 
 function moneyReward (t) {
     switch (t.type) {
@@ -40,7 +40,8 @@ function manageTower (event) {
         while (true) tower.moveXY(p.x, p.y);
     }
     tower.health = NaN;
-    tower.enemies = () => tower.findFriends().filter(e => (e.team === 'ogres' || e.type === 'skeleton') && (!(isNaN(e.health))) && isOnTrack(e.pos)).concat(tower.findEnemies().filter(e => (e.team === 'ogres' || e.type === 'skeleton') && (!(isNaN(e.health))) && isOnTrack(e.pos)));
+    let f = e => (e.team === 'ogres' || e.type === 'skeleton') && (!(isNaN(e.health))) && isOnTrack(e.pos);
+    tower.enemies = () => tower.findFriends().filter(f).concat(tower.findEnemies().filter(f));
     tower.furthest = () => {
         let towerEnemies = tower.enemies().filter(e => tower.distanceTo(e) <= tower.attackRange);
         let largest = towerEnemies[0];
@@ -173,7 +174,7 @@ function canUpgrade (t) {
     return getUpgradeOf(t, true) < 3;
 }
 function getUpgradeOf (t, bool) {
-    return (Math.round((t.scale - 1) / 0.25)) + (bool ? 1 : 0);
+    return Math.round((t.scale - 1) / 0.25) + (bool ? 1 : 0);
 }
 function getCost (t) {
     return towerCosts[t.type][getUpgradeOf(t, false)];
@@ -184,14 +185,19 @@ function square (thang, x1, x2, y1, y2) {
 function towerBuild (event) {
     let mouse = event.pos;
     let t = event.other.type;
-    let costs = [['archer', 'soldier', 'thrower'], [25, 5, 10]];
+    let costs = {archer: 25, soldier: 5, thrower: 10};
     if (event.other.health === 'toBuy') {
-        if (moneyHandler(costs[1][costs[0].indexOf(t)])) thingy(t);
+        if (moneyHandler(costs[t])) thingy(t);
         else event.other.say('Sorry, you don\'t have enough money for that');
-    } else if (t && event.other.team === 'humans' && canUpgrade(event.other)) {
+    } else if (t && event.other.team === 'humans') {
         game.towerSelected = event.other;
         while (game.towerSelected === event.other) {
-            event.other.say('Press "U" to upgrade me for ' + getCost(event.other) + ' money, press "S" to sell me, and press "C" to de-select me.');
+            let str = '';
+            if (canUpgrade(event.other)) {
+                str += 'Press "U" to upgrade me for ' + getCost(event.other) + ' money ';
+            }
+            str += 'press "S" to sell me, and press "C" to de-select me.';
+            event.other.say(str);
             wait(10);
         }
         event.other.say('');
@@ -206,20 +212,20 @@ function move (thang, pos) {
     }
 }
 function pathMove (event) {
-    game.enemiesLeftInWave -= 1;
+    game.enemiesLeftInWave--;
     let ogre = event.target;
     enemies.push(ogre);
     ogre.team = 'ogres';
     if (isNaN(ogre.health)) ogre.health = 7;
-    ogre.maxHealth = Math.ceil(game.wave / 10) * ogre.maxHealth;
-    ogre.health = Math.ceil(game.wave / 10) * ogre.health;
+    ogre.maxHealth *= Math.ceil(game.wave / 10);
+    ogre.health *= Math.ceil(game.wave / 10);
     ogre.maxSpeed = 12.5;
     move(ogre, {x: 57.5, y: 47.5});
     move(ogre, {x: 27.5, y: 47.5});
     move(ogre, {x: 27.5, y: 32.5});
     move(ogre, {x: 57.5, y: 32.5});
     move(ogre, {x: 57.5, y: 17.5});
-    game.lives -= 1;
+    game.lives--;
     game.money -= moneyReward(ogre);
     if (game.lives <= 0) {
         if (game.lives < 0) game.lives = 0;
@@ -263,7 +269,7 @@ function charDetect (event) {
                     if (costs.indexOf(cost) >= getUpgradeOf(game.towerSelected, false)) break;
                     sum += cost;
                 }
-                sum = sum / 2;
+                sum /= 2;
                 game.money += Math.ceil(sum);
                 towers.splice(towers.indexOf(game.towerSelected));
                 game.towerSelected.defeat();
@@ -385,8 +391,8 @@ game.arch.scale = 0.01;
 game.sold.scale = 0.01;
 game.thro.scale = 0.01;
 while (true) {
-    if (game.wave - 1 >= game.previousWave) nextWave();
-    else if (game.wave >= 10 && game.enemiesAlive === 0 && game.enemiesLeftInWave === 0 && game.lives > 0) game.setGoalState(game.survive, true);
+    if (game.wave - 1 === game.previousWave) nextWave();
+    if (game.wave >= 10 && game.enemiesAlive === 0 && game.enemiesLeftInWave === 0 && game.lives > 0) game.setGoalState(game.survive, true);
     if (game.wave !== game.previousWave) game.previousWave = game.wave;
     wait(10);
 }
